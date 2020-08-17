@@ -1,0 +1,48 @@
+{
+  "name": "image_zipper",
+  "productName": "ImageZipper",
+  "author": {
+    "name": "Jitesh Jani"
+  },
+  "version": "1.0.0",
+  "description": "A cross platform desktop application to compress images of different formats",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder"
+  },
+  "build": {
+    "appId": "org.zipper.image",
+    "productName": "ImageZipper",
+    "copyright": "Copyright © 2020 Jitesh Jani",
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    }
+  },
+  "keywords": [
+    "image compression",
+    "electron",
+    "desktop",
+    "windows",
+    "linux",
+    "mac"
+  ],
+  "devDependencies": {
+    "electron": "^9.2.0",
+    "electron-builder": "^22.8.0",
+    "electron-packager": "^15.0.0"
+  },
+  "dependencies": {
+    "compress-images": "^1.9.3",
+    "gifsicle": "^5.1.0",
+    "pngquant-bin": "^6.0.0"
+  },
+  "license": "MIT"
+}

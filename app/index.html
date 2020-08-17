@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="script-src 'self' 'unsafe-inline'"
+    />
+    <link rel="stylesheet" href="chota.min.css" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="card is-full-screen wrapper">
+      <header>
+        <nav class="nav">
+          <div class="nav-left">
+            <h1 class="brand">
+              <img src="assets/images.svg" alt="ImageZipper" />ImageZipper
+            </h1>
+          </div>
+          <div class="nav-right hide-xs">
+            <a href="#" id="showAbout"
+              ><img src="assets/question-circle.svg" alt="About"
+            /></a>
+          </div>
+        </nav>
+      </header>
+
+      <div class="card">
+        <form>
+          <fieldset>
+            <legend class="text-label">Start Here...</legend>
+
+            <div class="row">
+              <div class="col-3">
+                <label for="outputQuality" class="text-label">
+                  Output Quality
+                  <small class="is-small text-grey" id="qualityPlaceHolder"
+                    >(50%)</small
+                  >
+                </label>
+              </div>
+              <div class="col-9">
+                <input
+                  type="range"
+                  name="outputQuality"
+                  id="outputQuality"
+                  min="0"
+                  max="100"
+                  value="50"
+                  class="slider"
+                />
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-3">
+                <label for="pathInput" class="text-label">Output Path</label>
+              </div>
+              <div class="col-9">
+                <input
+                  type="text"
+                  readonly=""
+                  value=""
+                  id="pathInput"
+                  name="pathInput"
+                  style="width: 100%;"
+                />
+              </div>
+            </div>
+
+            <div class="row">
+              <!-- <div class="col-3">
+                
+              </div> -->
+              <div class="col-12 is-center">
+                <label for="openDestination">
+                  Open Destination Folder After Conversion
+                </label>
+                <input
+                  type="checkbox"
+                  id="openDestination"
+                  name="openDestination"
+                  value="true"
+                />
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-12">
+                <label for="dropZone" class="text-label"
+                  >Drop Your Images Below</label
+                >
+              </div>
+              <div class="col-12">
+                <div id="dropZone">
+                  <img src="assets/cloud-upload.svg" alt="DropZone" />
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-12 is-hidden" id="logDiv">
+                <details>
+                  <summary class="text-label">Output Log:</summary>
+                  <ol class="log" id="outputLog"></ol>
+                </details>
+              </div>
+            </div>
+          </fieldset>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      const { dialog } = require("electron").remote;
+      const { ipcRenderer } = require("electron");
+      const path = require("path");
+      const os = require("os");
+      let qualityValue = parseInt("50");
+      let outputPath = path.join(os.homedir(), "Desktop", "ImageZipper");
+      let openDestination = false;
+
+      function browseImages() {
+        dialog
+          .showOpenDialog({
+            title: "Select Images",
+            properties: ["openFile", "multiSelections"],
+            filters: [
+              {
+                name: "Images",
+                extensions: ["jpg", "png", "gif", "svg"],
+              },
+            ],
+          })
+          .then((result) => {
+            if (!result.canceled && result.filePaths.length) {
+              let images = [];
+              for (let file of result.filePaths) {
+                images.push(file);
+              }
+              compressImage(images);
+              return false;
+            }
+          })
+          .catch((err) => {
+            console.error(err);
+          });
+      }
+
+      function compressImage(images) {
+        ipcRenderer.send("image:minimize", {
+          images,
+          outputPath,
+          qualityValue,
+          openDestination,
+        });
+      }
+
+      function createLog(log) {
+        document.getElementById("logDiv").classList.remove("is-hidden");
+        let list = document.getElementById("outputLog");
+        list.classList.add("bd-light");
+        let item = document.createElement("li");
+        let span = document.createElement("span");
+        if (log.type === "error") {
+          span.classList.add("text-error");
+        }
+        span.appendChild(document.createTextNode(log.message));
+        item.appendChild(span);
+        list.appendChild(item);
+      }
+
+      (function () {
+        ipcRenderer.on("browse:images", (e) => {
+          browseImages();
+        });
+        ipcRenderer.on("output:log", (e, log) => {
+          createLog(log);
+        });
+        document.getElementById("showAbout").addEventListener("click", (e) => {
+          e.preventDefault();
+          ipcRenderer.send("show:about");
+        });
+        document
+          .getElementById("openDestination")
+          .addEventListener("change", (e) => {
+            openDestination = e.target.value ? true : false;
+          });
+        const dropZone = document.getElementById("dropZone");
+        dropZone.addEventListener("click", (e) => {
+          e.preventDefault();
+          browseImages();
+        });
+        dropZone.ondragover = () => {
+          return false;
+        };
+        dropZone.ondragleave = () => {
+          return false;
+        };
+        dropZone.ondragend = () => {
+          return false;
+        };
+        dropZone.ondrop = (e) => {
+          e.preventDefault();
+          let images = [];
+          for (let f of e.dataTransfer.files) {
+            images.push(f.path);
+          }
+          compressImage(images);
+          return false;
+        };
+
+        const qualityPlaceHolder = document.getElementById(
+          "qualityPlaceHolder"
+        );
+
+        document
+          .getElementById("outputQuality")
+          .addEventListener("change", (e) => {
+            e.preventDefault();
+            qualityPlaceHolder.innerText = `(${e.target.value}%)`;
+            qualityValue = parseInt(e.target.value);
+          });
+
+        const pathInput = document.getElementById("pathInput");
+        pathInput.value = outputPath;
+        pathInput.addEventListener("click", (e) => {
+          e.preventDefault();
+          dialog
+            .showOpenDialog({
+              title: "Set Output Path",
+              properties: [
+                "openDirectory",
+                "createDirectory",
+                "promptToCreate",
+              ],
+            })
+            .then((result) => {
+              if (!result.canceled && result.filePaths.length) {
+                outputPath = result.filePaths[0];
+                pathInput.value = result.filePaths[0];
+              }
+            })
+            .catch((err) => {
+              console.error(err);
+            });
+        });
+      })();
+    </script>
+  </body>
+</html>
