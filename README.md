@@ -8,7 +8,7 @@ A cross platform desktop application to compress images of different formats
 To build for your own OS, make sure you have [NodeJS](https://nodejs.org/en/download/) and [Git](https://git-scm.com/) installed on your system, and then run:
 ```
 # Clone this repository
-git clone git@github.com:jiteshjani/image-zipper.git
+git clone https://github.com/jiteshjani/image-zipper.git
 
 # Go into the repository
 cd image-zipper
